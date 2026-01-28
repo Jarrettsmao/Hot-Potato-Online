@@ -1,61 +1,114 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <title>WebSocket Test</title>
-  </head>
-  <body>
-    <h1>Hot Potato WebSocket Test</h1>
-    <button id="connect">Connect</button>
-    <button id="send">Send Message</button>
-    <button id="disconnect">Disconnect</button>
-    <div id="log"></div>
+<head>
+  <title>Hot Potato - 2 Player Test</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    .player { border: 2px solid #333; padding: 15px; margin: 10px; display: inline-block; }
+    button { padding: 10px; margin: 5px; cursor: pointer; }
+    .log { background: #f0f0f0; padding: 10px; margin: 10px 0; max-height: 300px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <h1>🥔 Hot Potato - 2 Player Test</h1>
 
-    <script>
-      let ws;
-      const log = document.getElementById("log");
+  <!-- Player 1 -->
+  <div class="player">
+    <h2>Player 1 (Alice)</h2>
+    <button onclick="connectPlayer1()">Connect</button>
+    <button onclick="joinRoom1()">Join Room "ABC123"</button>
+    <div class="log" id="log1"></div>
+  </div>
 
-      function addLog(message) {
-        const p = document.createElement("p");
-        p.textContent = message;
-        log.appendChild(p);
+  <!-- Player 2 -->
+  <div class="player">
+    <h2>Player 2 (Bob)</h2>
+    <button onclick="connectPlayer2()">Connect</button>
+    <button onclick="joinRoom2()">Join Room "ABC123"</button>
+    <div class="log" id="log2"></div>
+  </div>
+
+  <script>
+    let ws1, ws2;
+
+    // Player 1 Functions
+    function connectPlayer1() {
+      ws1 = new WebSocket('ws://localhost:8080');
+      
+      ws1.onopen = () => {
+        addLog(1, '✅ Player 1 connected');
+      };
+      
+      ws1.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        addLog(1, '📩 Received: ' + JSON.stringify(data, null, 2));
+      };
+      
+      ws1.onerror = (error) => {
+        addLog(1, '❌ Error: ' + error);
+      };
+      
+      ws1.onclose = () => {
+        addLog(1, '🔌 Disconnected');
+      };
+    }
+
+    function joinRoom1() {
+      if (ws1 && ws1.readyState === WebSocket.OPEN) {
+        ws1.send(JSON.stringify({
+          type: 'JOIN_ROOM',
+          roomId: 'ABC123',
+          playerName: 'Alice'
+        }));
+        addLog(1, '📤 Sent JOIN_ROOM as Alice');
+      } else {
+        addLog(1, '❌ Not connected! Click Connect first.');
       }
+    }
 
-      document.getElementById("connect").addEventListener("click", () => {
-        ws = new WebSocket("ws://localhost:8080");
+    // Player 2 Functions
+    function connectPlayer2() {
+      ws2 = new WebSocket('ws://localhost:8080');
+      
+      ws2.onopen = () => {
+        addLog(2, '✅ Player 2 connected');
+      };
+      
+      ws2.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        addLog(2, '📩 Received: ' + JSON.stringify(data, null, 2));
+      };
+      
+      ws2.onerror = (error) => {
+        addLog(2, '❌ Error: ' + error);
+      };
+      
+      ws2.onclose = () => {
+        addLog(2, '🔌 Disconnected');
+      };
+    }
 
-        ws.onopen = () => {
-          addLog("✅ Connected");
-        };
+    function joinRoom2() {
+      if (ws2 && ws2.readyState === WebSocket.OPEN) {
+        ws2.send(JSON.stringify({
+          type: 'JOIN_ROOM',
+          roomId: 'ABC123',
+          playerName: 'Bob'
+        }));
+        addLog(2, '📤 Sent JOIN_ROOM as Bob');
+      } else {
+        addLog(2, '❌ Not connected! Click Connect first.');
+      }
+    }
 
-        ws.onmessage = (event) => {
-          addLog("📩 Server says: " + event.data);
-        };
-
-        ws.onerror = (error) => {
-          addLog("❌ Error: " + error);
-        };
-
-        ws.onclose = () => {
-          addLog("🔌 Disconnected");
-        };
-      });
-
-      document.getElementById("send").addEventListener("click", () => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "JOIN_ROOM", roomId: "test" }));
-          addLog("📤 Sent: JOIN_ROOM");
-        } else {
-          addLog("❌ Not connected");
-        }
-      });
-
-      document.getElementById("disconnect").addEventListener("click", () => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.close();
-        } else {
-          addLog("❌ Not connected");
-        }
-      });
-    </script>
-  </body>
+    // Helper function
+    function addLog(player, message) {
+      const logDiv = document.getElementById('log' + player);
+      const p = document.createElement('pre');
+      p.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+      logDiv.appendChild(p);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+  </script>
+</body>
 </html>
