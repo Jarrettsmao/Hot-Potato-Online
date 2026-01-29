@@ -4,9 +4,10 @@
   <title>Hot Potato - 2 Player Test</title>
   <style>
     body { font-family: monospace; padding: 20px; }
-    .player { border: 2px solid #333; padding: 15px; margin: 10px; display: inline-block; }
-    button { padding: 10px; margin: 5px; cursor: pointer; }
-    .log { background: #f0f0f0; padding: 10px; margin: 10px 0; max-height: 300px; overflow-y: auto; }
+    .player { border: 2px solid #333; padding: 15px; margin: 10px; display: inline-block; vertical-align: top; width: 400px; }
+    button { padding: 10px; margin: 5px; cursor: pointer; font-size: 14px; }
+    .log { background: #f0f0f0; padding: 10px; margin: 10px 0; max-height: 300px; overflow-y: auto; font-size: 12px; }
+    .player-id { background: #ffffcc; padding: 5px; margin: 5px 0; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -15,37 +16,63 @@
   <!-- Player 1 -->
   <div class="player">
     <h2>Player 1 (Alice)</h2>
-    <button onclick="connectPlayer1()">Connect</button>
-    <button onclick="joinRoom1()">Join Room "ABC123"</button>
+    <button onclick="connectPlayer1()">1. Connect</button>
+    <button onclick="joinRoom1()">2. Join Room</button>
+    <button onclick="startGame()">3. Start Game</button>
+    <button onclick="passToPlayer2()">4. Pass to Player 2</button>
+    <div class="player-id" id="player1-id">Player ID: Not connected</div>
     <div class="log" id="log1"></div>
   </div>
 
   <!-- Player 2 -->
   <div class="player">
     <h2>Player 2 (Bob)</h2>
-    <button onclick="connectPlayer2()">Connect</button>
-    <button onclick="joinRoom2()">Join Room "ABC123"</button>
+    <button onclick="connectPlayer2()">1. Connect</button>
+    <button onclick="joinRoom2()">2. Join Room</button>
+    <button onclick="passToPlayer1()">4. Pass to Player 1</button>
+    <div class="player-id" id="player2-id">Player ID: Not connected</div>
     <div class="log" id="log2"></div>
   </div>
 
   <script>
     let ws1, ws2;
+    let player1Id = null;  // ← Store Player 1's ID
+    let player2Id = null;  // ← Store Player 2's ID
 
-    // Player 1 Functions
+    // ========== PLAYER 1 FUNCTIONS ==========
+    
     function connectPlayer1() {
       ws1 = new WebSocket('ws://localhost:8080');
       
       ws1.onopen = () => {
-        addLog(1, '✅ Player 1 connected');
+        addLog(1, '✅ Connected to server');
       };
       
       ws1.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        addLog(1, '📩 Received: ' + JSON.stringify(data, null, 2));
+        addLog(1, '📩 ' + JSON.stringify(data, null, 2));
+        
+        // ← EXTRACT PLAYER 1'S ID FROM ROOM_UPDATE
+        if (data.type === 'ROOM_UPDATE' && data.room && data.room.players) {
+          // Find Alice in the players list
+          const alicePlayer = data.room.players.find(p => p.name === 'Alice');
+          if (alicePlayer && !player1Id) {
+            player1Id = alicePlayer.id;
+            document.getElementById('player1-id').textContent = `Player ID: ${player1Id}`;
+            addLog(1, `🆔 Saved my ID: ${player1Id}`);
+          }
+          
+          // Also save Player 2's ID if they're in the room
+          const bobPlayer = data.room.players.find(p => p.name === 'Bob');
+          if (bobPlayer && !player2Id) {
+            player2Id = bobPlayer.id;
+            addLog(1, `🆔 Found Player 2's ID: ${player2Id}`);
+          }
+        }
       };
       
       ws1.onerror = (error) => {
-        addLog(1, '❌ Error: ' + error);
+        addLog(1, '❌ Error');
       };
       
       ws1.onclose = () => {
@@ -66,21 +93,66 @@
       }
     }
 
-    // Player 2 Functions
+    function startGame() {
+      if (ws1 && ws1.readyState === WebSocket.OPEN) {
+        ws1.send(JSON.stringify({ type: 'START_GAME' }));
+        addLog(1, '📤 Sent START_GAME');
+      } else {
+        addLog(1, '❌ Not connected!');
+      }
+    }
+
+    function passToPlayer2() {
+      if (!player2Id) {
+        addLog(1, '❌ Player 2 ID not found! Make sure Player 2 joined the room.');
+        return;
+      }
+      
+      if (ws1 && ws1.readyState === WebSocket.OPEN) {
+        ws1.send(JSON.stringify({
+          type: 'PASS_POTATO',
+          targetPlayerId: player2Id  // ← Use stored ID!
+        }));
+        addLog(1, `📤 Sent PASS_POTATO to Player 2 (${player2Id})`);
+      } else {
+        addLog(1, '❌ Not connected!');
+      }
+    }
+
+    // ========== PLAYER 2 FUNCTIONS ==========
+    
     function connectPlayer2() {
       ws2 = new WebSocket('ws://localhost:8080');
       
       ws2.onopen = () => {
-        addLog(2, '✅ Player 2 connected');
+        addLog(2, '✅ Connected to server');
       };
       
       ws2.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        addLog(2, '📩 Received: ' + JSON.stringify(data, null, 2));
+        addLog(2, '📩 ' + JSON.stringify(data, null, 2));
+        
+        // ← EXTRACT PLAYER 2'S ID FROM ROOM_UPDATE
+        if (data.type === 'ROOM_UPDATE' && data.room && data.room.players) {
+          // Find Bob in the players list
+          const bobPlayer = data.room.players.find(p => p.name === 'Bob');
+          if (bobPlayer && !player2Id) {
+            player2Id = bobPlayer.id;
+            document.getElementById('player2-id').textContent = `Player ID: ${player2Id}`;
+            addLog(2, `🆔 Saved my ID: ${player2Id}`);
+          }
+          
+          // Also save Player 1's ID if they're in the room
+          const alicePlayer = data.room.players.find(p => p.name === 'Alice');
+          if (alicePlayer && !player1Id) {
+            player1Id = alicePlayer.id;
+            addLog(2, `🆔 Found Player 1's ID: ${player1Id}`);
+          }
+        }
       };
       
       ws2.onerror = (error) => {
-        addLog(2, '❌ Error: ' + error);
+        addLog(2, '❌ Error');
       };
       
       ws2.onclose = () => {
@@ -101,11 +173,30 @@
       }
     }
 
-    // Helper function
+    function passToPlayer1() {
+      if (!player1Id) {
+        addLog(2, '❌ Player 1 ID not found! Make sure Player 1 joined the room.');
+        return;
+      }
+      
+      if (ws2 && ws2.readyState === WebSocket.OPEN) {
+        ws2.send(JSON.stringify({
+          type: 'PASS_POTATO',
+          targetPlayerId: player1Id  // ← Use stored ID!
+        }));
+        addLog(2, `📤 Sent PASS_POTATO to Player 1 (${player1Id})`);
+      } else {
+        addLog(2, '❌ Not connected!');
+      }
+    }
+
+    // ========== HELPER FUNCTION ==========
+    
     function addLog(player, message) {
       const logDiv = document.getElementById('log' + player);
       const p = document.createElement('pre');
       p.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+      p.style.margin = '5px 0';
       logDiv.appendChild(p);
       logDiv.scrollTop = logDiv.scrollHeight;
     }
