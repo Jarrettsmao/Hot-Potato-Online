@@ -1,16 +1,52 @@
-using UnityEngine;
+using System;
+using System.Collections.Generic;
 
-public class MessageTypes : MonoBehaviour
+public class Player
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    public string id;
+    public string username;
+    public bool connected;
+}
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+public class GameRoom
+{
+    public string roomId;
+    public List<Player> players;
+    public string potatoHolderId;
+    public string phase;
+}
+
+public class ServerMessage
+{
+    public string type;
+    public GameRoom room;
+    public string message;
+    public Player loser;
+    public string playerId;
+    public string fromPlayerId;
+    public string toPlayerId;
+}
+
+//Outgoing message classes
+public class JoinRoomMessage
+{
+    public string type = "JOIN_ROOM";
+    public string roomId;
+    public string playerName;
+}
+
+public class StartGameMessage
+{
+    public string type = "START_GAME";
+}
+
+public class PassPotatoMessage
+{
+    public string type = "PASS_POTATO";
+    public string targetPlayerId;
+}
+
+public class PlayAgainMessage
+{
+    public string type = "PLAY_AGAIN";
 }
