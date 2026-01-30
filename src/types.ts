@@ -13,5 +13,11 @@ export type GameRoom = {
     potatoHolderId: string | null;
     phase: GamePhase;
     endTime: number | null;
-}
+    maxPlayers: number;
+};
+
+export type ClientData = {
+    playerId: string;
+    roomId: string;
+};
 

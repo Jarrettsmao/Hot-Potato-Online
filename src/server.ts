@@ -1,12 +1,29 @@
 import { WebSocketServer, WebSocket } from "ws";
+import { GameRoom, Player, ClientData } from "./types";
 
 const wss = new WebSocketServer({ port: 8080 });
 
 //in-memory storage (replace with database later)
-const rooms = new Map<string, any>();
-const clients = new Map<WebSocket, { playerId: string; roomId: string }>();
+const rooms = new Map<string, GameRoom>();
+const clients = new Map<WebSocket, ClientData>();
 
-wss.on("connection", (ws) => {
+const MIN_PLAYERS = 2;
+const MAX_PLAYERS = 4;
+const MIN_TIMER = 10000; //10 sec
+const MAX_TIMER = 30000; //30 sec
+
+function broadcast(roomId: string, message: unknown) {
+  clients.forEach((clientData, clientWs) => {
+    if (
+      clientData.roomId === roomId &&
+      clientWs.readyState === WebSocket.OPEN
+    ) {
+      clientWs.send(JSON.stringify(message));
+    }
+  });
+}
+
+wss.on("connection", (ws: WebSocket) => {
   console.log("Client connected");
 
   ws.on("message", (data) => {
@@ -16,6 +33,28 @@ wss.on("connection", (ws) => {
       const { roomId, playerName } = message;
       const playerId = crypto.randomUUID();
 
+      //check required fields
+      if (!roomId || !playerName) {
+        ws.send(
+          JSON.stringify({
+            type: "ERROR",
+            message: "Room ID and player name requried",
+          }),
+        );
+        return;
+      }
+
+      //check name length
+      if (playerName.length < 2 || playerName.length > 20) {
+        ws.send(
+          JSON.stringify({
+            type: "ERROR",
+            message: "Player name must be between 1 and 20 characters",
+          }),
+        );
+        return;
+      }
+
       //create room if doesn't exist
       if (!rooms.has(roomId)) {
         rooms.set(roomId, {
@@ -24,11 +63,49 @@ wss.on("connection", (ws) => {
           phase: "lobby",
           potatoHolderId: null,
           endTime: null,
+          maxPlayers: MAX_PLAYERS,
         });
       }
 
       //add player
       const room = rooms.get(roomId);
+
+      if (!room) return;
+
+      //check if full
+      if (room.players.length >= room.maxPlayers) {
+        ws.send(
+          JSON.stringify({
+            type: "ERROR",
+            message: `Room is full (max ${room.maxPlayers} players)`,
+          }),
+        );
+        return;
+      }
+
+      //check if game already started
+      if (room.phase === "playing") {
+        ws.send(
+          JSON.stringify({
+            type: "ERROR",
+            message: "Game in progress! Please wait for the next round.",
+          }),
+        );
+        return;
+      }
+
+      //check for duplicate names
+      if (room.players.find((p) => p.name === playerName)) {
+        ws.send(
+          JSON.stringify({
+            type: "ERROR",
+            message:
+              "Player name already taken in this room. Please change it and try again.",
+          }),
+        );
+        return;
+      }
+
       room.players.push({
         id: playerId,
         name: playerName,
@@ -83,8 +160,9 @@ wss.on("connection", (ws) => {
       const randomIndex = Math.floor(Math.random() * room.players.length);
       room.potatoHolderId = room.players[randomIndex].id;
 
-      //set randomtimer 10-30 sec
-      const randomDelay = Math.floor(Math.random() * 20000) + 10000;
+      //set randomtimer
+      const randomDelay =
+        Math.floor(Math.random() * (MAX_TIMER - MIN_TIMER)) + MIN_TIMER;
       room.endTime = Date.now() + randomDelay;
 
       //broadcast game start
@@ -154,19 +232,38 @@ wss.on("connection", (ws) => {
       console.log(
         `Potato passed to ${targetPlayer.name} in room ${clientData.roomId}`,
       );
+    } else if (message.type === "PLAY_AGAIN") {
+      const clientData = clients.get(ws);
+      if (!clientData) return;
+
+      const room = rooms.get(clientData.roomId);
+      if (!room) return;
+
+      //only allow reset if game is ended
+      if (room.phase !== "ended") {
+        ws.send(
+          JSON.stringify({
+            type: "ERROR",
+            message: "Game is still in progress",
+          }),
+        );
+        return;
+      }
+
+      //reset room
+      room.phase = "lobby";
+      room.potatoHolderId = null;
+      room.endTime = null;
+      
+      console.log(`Room ${clientData.roomId} reset for new game`);
+
+      broadcast(clientData.roomId, {
+        type: "ROOM_UPDATE",
+        room: room,
+        message: "Room reset! Ready for another round?",
+      });
     }
   });
-
-  function broadcast(roomId: string, message: any) {
-    clients.forEach((clientData, clientWs) => {
-      if (
-        clientData.roomId === roomId &&
-        clientWs.readyState === WebSocket.OPEN
-      ) {
-        clientWs.send(JSON.stringify(message));
-      }
-    });
-  }
 
   ws.on("close", () => {
     console.log("Client disconnected");
@@ -186,43 +283,46 @@ wss.on("connection", (ws) => {
         room.players = room.players.filter((p) => p.id !== clientData.playerId);
         //Broadcast update
         broadcast(clientData.roomId, {
-          type: "ROOM_UPDATE",
+          type: "GAME_ENDED",
           room: room,
           message: playerName + " disconnected",
         });
+
+        room.phase = "ended";
+        room.endTime = null;
       }
 
       //remove from clients map
       clients.delete(ws);
     }
   });
-
-  //timer loop - checks every 100ms
-  setInterval(() => {
-    const now = Date.now();
-
-    rooms.forEach((room, roomId) => {
-      if (room.phase === "playing" && room.endTime !== null) {
-        if (now >= room.endTime) {
-          const loser = room.players.find((p) => p.id === room.potatoHolderId);
-
-          //end game
-          room.phase = "ended";
-          room.endTime = null;
-
-          //broadcast gg
-          broadcast(roomId, {
-            type: "GAME_ENDED",
-            room: room,
-            loser: loser,
-            message: `💥 BOOM! ${loser?.name || "Someone"} lost!`,
-          });
-
-          console.log(`Game ended in room ${roomId}, loser: ${loser?.name}`);
-        }
-      }
-    });
-  }, 100);
-
-  console.log("🚀 WebSocket server running on ws://localhost:8080");
 });
+
+//timer loop - checks every 100ms
+setInterval(() => {
+  const now = Date.now();
+
+  rooms.forEach((room, roomId) => {
+    if (room.phase === "playing" && room.endTime !== null) {
+      if (now >= room.endTime) {
+        const loser = room.players.find((p) => p.id === room.potatoHolderId);
+
+        //end game
+        room.phase = "ended";
+        room.endTime = null;
+
+        //broadcast gg
+        broadcast(roomId, {
+          type: "GAME_ENDED",
+          room: room,
+          loser: loser,
+          message: `💥 BOOM! ${loser?.name || "Someone"} lost!`,
+        });
+
+        console.log(`Game ended in room ${roomId}, loser: ${loser?.name}`);
+      }
+    }
+  });
+}, 100);
+
+console.log("🚀 WebSocket server running on ws://localhost:8080");
