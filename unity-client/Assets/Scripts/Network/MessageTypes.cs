@@ -4,7 +4,8 @@ using System.Collections.Generic;
 public class Player
 {
     public string id;
-    public string username;
+    
+    public string name;
     public bool connected;
 }
 
