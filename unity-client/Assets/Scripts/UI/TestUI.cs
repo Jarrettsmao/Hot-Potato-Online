@@ -119,11 +119,6 @@ public class TestUI : MonoBehaviour
             case "JOIN_SUCCESS":
                 UpdateStatus($"Joined room {message.room.roomId} successfully!");
                 UpdateRoomDisplay(message.room);
-                //Show if you're host
-                if (message.room.hostId == nm.MyPlayerId)
-                {
-                    UpdateStatus("👑 You are the host! You can start the game.");
-                }
                 break;
 
             case "ROOM_UPDATE":
