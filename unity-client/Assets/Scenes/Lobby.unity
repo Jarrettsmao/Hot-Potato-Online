@@ -380,7 +380,7 @@ MonoBehaviour:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_RaycastPadding: {x: 130, y: 60, z: 130, w: 85}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
@@ -925,7 +925,7 @@ MonoBehaviour:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_RaycastPadding: {x: 130, y: 60, z: 130, w: 85}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
@@ -1005,7 +1005,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Join a Room (0/4)
+  m_text: Join a Room | Players (0/4)
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 853f06da05317be4eb31fa2cbcd433fe, type: 2}
   m_sharedMaterial: {fileID: -8548944060745426752, guid: 853f06da05317be4eb31fa2cbcd433fe, type: 2}
@@ -1247,7 +1247,7 @@ MonoBehaviour:
   m_Material: {fileID: 0}
   m_Color: {r: 0.4452207, g: 0.8207547, b: 0.54042655, a: 1}
   m_RaycastTarget: 1
-  m_RaycastPadding: {x: 120, y: 70, z: 120, w: 95}
+  m_RaycastPadding: {x: 130, y: 75, z: 130, w: 105}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
@@ -1610,8 +1610,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4278190080
+  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1916,7 +1916,7 @@ MonoBehaviour:
   m_Material: {fileID: 0}
   m_Color: {r: 0.95294124, g: 0.654902, b: 0.2509804, a: 1}
   m_RaycastTarget: 1
-  m_RaycastPadding: {x: 120, y: 70, z: 120, w: 95}
+  m_RaycastPadding: {x: 93, y: 55, z: 93, w: 75}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
@@ -3245,9 +3245,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.8862746, g: 0.11764707, b: 0.13333334, a: 1}
+  m_Color: {r: 1, g: 0.3537736, b: 0.3669619, a: 1}
   m_RaycastTarget: 1
-  m_RaycastPadding: {x: 120, y: 70, z: 120, w: 95}
+  m_RaycastPadding: {x: 130, y: 75, z: 130, w: 105}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
@@ -3792,8 +3792,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4278190080
+  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:

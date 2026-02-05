@@ -59,3 +59,9 @@ public class PlayAgainMessage
 {
     public string type = "PLAY_AGAIN";
 }
+[Serializable]
+
+public class LeaveRoomMessage
+{
+    public string type = "LEAVE_ROOM";
+}

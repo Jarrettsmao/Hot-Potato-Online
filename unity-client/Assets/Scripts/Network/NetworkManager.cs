@@ -1,4 +1,5 @@
 using System;
+// using System.Diagnostics;
 using System.Threading.Tasks;
 using NativeWebSocket;
 using UnityEngine;
@@ -88,7 +89,11 @@ public class NetworkManager : MonoBehaviour
                         Debug.Log("👑 I am the host");
                     }
                     break;
-
+                case "LEAVE_SUCCESS":
+                    Debug.Log("🚪 Left room successfully");
+                    CurrentRoom = null;
+                    MyPlayerId = null;
+                    break;
                 case "ROOM_UPDATE":
                     CurrentRoom = message.room;
                     Debug.Log("📋 Room updated");
@@ -155,6 +160,16 @@ public class NetworkManager : MonoBehaviour
     public void PlayAgain()
     {
         SendMessage(new PlayAgainMessage());
+    }
+
+    public void LeaveRoom()
+    {
+        SendMessage(new LeaveRoomMessage());
+
+        CurrentRoom = null;
+        MyPlayerId = null;
+
+        Debug.Log("Left the room.");
     }
 
     //helper function to send any message

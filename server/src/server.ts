@@ -138,6 +138,54 @@ wss.on("connection", (ws: WebSocket) => {
           room: room,
         }),
       );
+    } else if (message.type === "LEAVE_ROOM") {
+      const clientData = clients.get(ws);
+      if (!clientData) return;
+
+      const room = rooms.get(clientData.roomId);
+      if (!room) return;
+
+      const leavingPlayer = room.players.find((p) => p.id === clientData.playerId);
+      const playerName = leavingPlayer ? leavingPlayer.name : "Unknown Player";
+      const wasHost = room.hostId === clientData.playerId;
+
+      //remove player from room
+      room.players = room.players.filter((p) => p.id !== clientData.playerId);
+
+      //transfer host if needed
+      if (wasHost && room.players.length > 0) {
+        const newHost = room.players[0];
+        room.hostId = newHost.id;
+        newHost.isHost = true;
+
+        console.log(`New host in room ${clientData.roomId} is ${newHost.name}`);
+
+        broadcast(clientData.roomId, {
+          type: "HOST_TRANSFERRED",
+          newHostId: newHost.id,
+          room: room,
+          message: `${playerName} has left. ${newHost.name} is now the host`,
+        });
+      } else if (room.players.length === 0) {
+        rooms.delete(clientData.roomId);
+        console.log(`Room ${clientData.roomId} deleted (empty)`);
+      } else {
+        broadcast(clientData.roomId, {
+          type: "ROOM_UPDATE",
+          room: room,
+          message: `${playerName} has left the room`,
+        });
+      }
+
+      clients.delete(ws);
+
+      ws.send(
+        JSON.stringify({
+          type: "LEAVE_SUCCESS",
+          message: "You have left the room",
+        }),
+      )
+
     } else if (message.type === "START_GAME") {
       const clientData = clients.get(ws);
 
@@ -316,7 +364,9 @@ wss.on("connection", (ws: WebSocket) => {
 
     // Start a grace period timer
     const timer = setTimeout(() => {
-      const stillInRoom = room.players.find(p => p.id === clientData.playerId);
+      const stillInRoom = room.players.find(
+        (p) => p.id === clientData.playerId,
+      );
       if (stillInRoom) {
         room.players = room.players.filter((p) => p.id !== clientData.playerId);
       }
@@ -339,7 +389,7 @@ wss.on("connection", (ws: WebSocket) => {
       if (room.players.length === 0) {
         rooms.delete(clientData.roomId);
         console.log(`Room ${clientData.roomId} deleted (empty)`);
-      } else if (!wasHost){
+      } else if (!wasHost) {
         broadcast(clientData.roomId, {
           type: "ROOM_UPDATE",
           room: room,
