@@ -19,8 +19,12 @@ public class LobbyUI : MonoBehaviour
     [Header("Player List")]
     [SerializeField] private Transform playerProfileContainer;  // The Grid Layout parent
     [SerializeField] private TMP_Text playerListTitleText;
-    private List<GameObject> playerProfiles = new List<GameObject>();
-    
+    [SerializeField] private GameObject playerProfilePrefab;
+    private List<PlayerProfile> playerProfiles = new List<PlayerProfile>();
+
+    [Header("Potato Sprites")]
+    [SerializeField] private Sprite[] potatoSprites;
+
     private NetworkManager nm;
 
     void Start()
@@ -36,7 +40,7 @@ public class LobbyUI : MonoBehaviour
         startButton.gameObject.SetActive(false);
         leaveButton.gameObject.SetActive(false);
 
-        HideAllPlayerProfiles();
+        // HideAllPlayerProfiles(); 
     }
 
     void OnDestroy()
@@ -53,7 +57,8 @@ public class LobbyUI : MonoBehaviour
         {
             case "JOIN_SUCCESS":
                 Debug.Log("✅ Joined room successfully!");
-                UpdatePlayerListTitle();  
+                UpdatePlayerListTitle();
+                UpdatePlayerList();
                 joinCreateButton.gameObject.SetActive(false);
                 leaveButton.gameObject.SetActive(true);
                 break;
@@ -63,30 +68,70 @@ public class LobbyUI : MonoBehaviour
                 joinCreateButton.gameObject.SetActive(true);
                 leaveButton.gameObject.SetActive(false);
                 startButton.gameObject.SetActive(false);
-                HideAllPlayerProfiles();
                 UpdatePlayerListTitle();
+                UpdatePlayerList();
                 break;
-                
+
             case "ROOM_UPDATE":
                 Debug.Log("📋 Room updated");
-                UpdatePlayerListTitle();  
+                UpdatePlayerListTitle();
+                UpdatePlayerList();
                 break;
-                
+
             case "GAME_STARTED":
                 Debug.Log("🎮 Game started!");
 
                 break;
-                
+
             case "ERROR":
                 Debug.LogError($"❌ Server error: {message.message}");
                 break;
         }
     }
 
+    void UpdatePlayerList()
+    {
+        ClearPlayerList();
+        if (nm.CurrentRoom == null || nm.CurrentRoom.players == null)
+        {
+            Debug.LogWarning("⚠️ No room or players to display!");
+            return;
+        }
+
+        for (int i = 0; i < nm.CurrentRoom.players.Count; i++)
+        {
+            Player player = nm.CurrentRoom.players[i];
+
+            GameObject profileObj = Instantiate(playerProfilePrefab, playerProfileContainer);
+            PlayerProfile profile = profileObj.GetComponent<PlayerProfile>();
+
+            if (profile != null)
+            {
+                profile.SetupProfile(player);
+
+                if (potatoSprites != null && potatoSprites.Length > 0)
+                {
+                    int spriteIndex = i % potatoSprites.Length; //wraps around if >4 players
+                    profile.SetPotatoIcon(potatoSprites[spriteIndex]);
+                }
+
+                if (player.id == nm.MyPlayerId)
+                {
+                    profile.SetAsLocalPlayer(true);
+                } 
+
+                playerProfiles.Add(profile);
+            }
+        }
+
+        UpdatePlayerListTitle();
+    }
+
+    //On button click
     void OnJoinCreateClicked()
     {
         Debug.Log("Join Status Clicked");
-        
+
         string roomId = roomIdInputField.text;
         string playerName = playerNameInputField.text;
 
@@ -108,7 +153,6 @@ public class LobbyUI : MonoBehaviour
     void OnLeaveClicked()
     {
         Debug.Log("Leave Clicked");
-        
         nm.LeaveRoom();
     }
 
@@ -118,7 +162,7 @@ public class LobbyUI : MonoBehaviour
         string roomText = GenerateRoomCode();
         roomIdInputField.text = roomText;
     }
-    
+
     //Header Methods 
     private string GenerateRoomCode()
     {
@@ -134,16 +178,25 @@ public class LobbyUI : MonoBehaviour
         return code;
     }
 
-    private void HideAllPlayerProfiles()
+    private void ClearPlayerList()
     {
-        for (int i = 0; i < playerProfileContainer.childCount; i++)
+        foreach (PlayerProfile profile in playerProfiles)
         {
-            GameObject profile = playerProfileContainer.GetChild(i).gameObject;
-            playerProfiles.Add(profile);
-            profile.SetActive(false);
-            
+            Destroy(profile.gameObject);
         }
+        playerProfiles.Clear();
     }
+
+    // private void HideAllPlayerProfiles()
+    // {
+    //     for (int i = 0; i < playerProfileContainer.childCount; i++)
+    //     {
+    //         GameObject profile = playerProfileContainer.GetChild(i).gameObject;
+    //         playerProfiles.Add(profile);
+    //         profile.SetActive(false);
+
+    //     }
+    // }
 
     private void UpdatePlayerListTitle()
     {
@@ -159,33 +212,23 @@ public class LobbyUI : MonoBehaviour
             playerListTitleText.text = "Join A Room | Players (0/4)";
             return;
         }
-        
+
         if (nm.CurrentRoom.players == null)
         {
             Debug.LogWarning("⚠️ CurrentRoom.players is null!");
             playerListTitleText.text = "Join A Room | Players (0/4)";
             return;
         }
-        
+
         int playerCount = nm.CurrentRoom.players.Count;
         int maxPlayers = nm.CurrentRoom.maxPlayers;
-        
+
         playerListTitleText.text = $"Room {nm.CurrentRoom.roomId} | Players ({playerCount}/{maxPlayers})";
 
-        for (int i = 0; i < playerCount; i++)
-        {
-            if (i < playerProfiles.Count)
-            {
-                GameObject profile = playerProfiles[i];
-                profile.SetActive(true);
-                TMP_Text nameText = profile.GetComponentInChildren<TMP_Text>();
-                if (nameText != null)
-                {
-                    nameText.text = nm.CurrentRoom.players[i].name;
-                }
-            }
-        }
-        
+        // Update player profiles display
+        // UpdatePlayerProfiles(playerCount);
+
         Debug.Log($"✅ Updated player list: {playerCount}/{maxPlayers}");
     }
 }
+
