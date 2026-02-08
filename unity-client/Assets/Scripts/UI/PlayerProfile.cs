@@ -4,28 +4,17 @@ using TMPro;
 using System.Text;
 // using System.Diagnostics;
 
-public class PlayerProfile : MonoBehaviour
+public class PlayerProfile : PlayerProfileBase
 {
-    [SerializeField] private Image potatoSprite;
-    [SerializeField] private TMP_Text usernameText;
     [SerializeField] private TMP_Text statusText;
     [SerializeField] private Image crownIcon;
 
-    private string playerId;
-
     public void SetupProfile(Player player)
     {
-        playerId = player.id;
-        SetUsername(player.name);
+        SetupBase(player);
         SetHost(player.isHost);
-        SetStatus("Not Ready");
+        SetStatus(player.isHost ? "Host" : "Not Ready");
         Debug.Log($"✅ Set up profile for player: {player.name} (ID: {player.id}, Host: {player.isHost}, Connected: {player.connected})");
-    }
-
-    public void SetPotatoIcon(Sprite sprite)
-    {
-        Debug.Log("Setting potato icon for player " + sprite.name);
-        potatoSprite.sprite = sprite;
     }
 
     public void SetHost(bool isHost)
@@ -42,19 +31,6 @@ public class PlayerProfile : MonoBehaviour
         {
             statusText.text = status;
         }
-    }
-
-    public void SetUsername(string username)
-    {
-        if (usernameText != null)
-        {
-            usernameText.text = username;
-        }
-    }
-
-    public string GetPlayerId()
-    {
-        return playerId;
     }
 
     public void SetAsLocalPlayer(bool isLocal)
